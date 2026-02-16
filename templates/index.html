@@ -28,6 +28,10 @@
 <body>
   <h2>Ajedrez con validación de reglas (python-chess + Flask)</h2>
   <div id="board" class="board"></div>
+  <h2>Partida de ajedrez</h2>
+
+<p><strong>Blancas:</strong> {{ players.white or "—" }}</p>
+<p><strong>Negras:</strong> {{ players.black or "—" }}</p>
 
   <p>
     <button onclick="resetGame()">Reiniciar partida</button>
@@ -149,3 +153,4 @@
   </script>
 </body>
 </html>
+

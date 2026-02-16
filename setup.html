@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Configurar partida</title>
+</head>
+<body>
+  <h2>Configurar partida</h2>
+
+  <p>ID de partida: {{ game_id }}</p>
+
+  <h3>Jugadores actuales</h3>
+  <ul>
+    <li>Blancas: {{ players.white or "Libre" }}</li>
+    <li>Negras: {{ players.black or "Libre" }}</li>
+  </ul>
+
+  <h3>Unirse a la partida</h3>
+  <form method="POST">
+    <label>Tu nombre:</label><br>
+    <input type="text" name="name" required><br><br>
+
+    <label>Color:</label><br>
+    <select name="color">
+      {% if not players.white %}
+      <option value="white">Blancas</option>
+      {% endif %}
+      {% if not players.black %}
+      <option value="black">Negras</option>
+      {% endif %}
+    </select><br><br>
+
+    <button type="submit">Unirme</button>
+  </form>
+</body>
+</html>

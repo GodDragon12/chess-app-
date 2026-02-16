@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ajedrez web</title>
+  <style>
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 60px);
+      grid-template-rows: repeat(8, 60px);
+      width: 480px;
+      border: 2px solid #333;
+    }
+    .square {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      cursor: pointer;
+    }
+    .light { background: #f0d9b5; }
+    .dark { background: #b58863; }
+    .selected { outline: 3px solid red; }
+  </style>
+</head>
+<body>
+  <h2>Ajedrez con validación de reglas (python-chess + Flask)</h2>
+  <div id="board" class="board"></div>
+
+  <p>
+    <button onclick="resetGame()">Reiniciar partida</button>
+  </p>
+
+  <script>
+    // FEN inicial desde el backend
+    let fen = "{{ fen }}";
+    let selectedSquare = null;
+
+    const pieceSymbols = {
+      'P': '♙', 'N': '♘', 'B': '♗', 'R': '♖', 'Q': '♕', 'K': '♔',
+      'p': '♟', 'n': '♞', 'b': '♝', 'r': '♜', 'q': '♛', 'k': '♚'
+    };
+
+    function parseFEN(fen) {
+      const boardPart = fen.split(' ')[0];
+      const rows = boardPart.split('/');
+      const squares = [];
+      for (let r = 0; r < 8; r++) {
+        const row = rows[r];
+        let rowSquares = [];
+        for (const ch of row) {
+          if (!isNaN(ch)) {
+            for (let i = 0; i < parseInt(ch); i++) {
+              rowSquares.push('.');
+            }
+          } else {
+            rowSquares.push(ch);
+          }
+        }
+        squares.push(rowSquares);
+      }
+      return squares;
+    }
+
+    function drawBoard() {
+      const boardDiv = document.getElementById('board');
+      boardDiv.innerHTML = '';
+      const squares = parseFEN(fen);
+      const files = ['a','b','c','d','e','f','g','h'];
+
+      for (let r = 0; r < 8; r++) {
+        for (let f = 0; f < 8; f++) {
+          const div = document.createElement('div');
+          const rank = 8 - r;
+          const file = files[f];
+          const sqName = file + rank;
+
+          const isLight = (r + f) % 2 === 0;
+          div.className = 'square ' + (isLight ? 'light' : 'dark');
+          div.dataset.square = sqName;
+
+          const piece = squares[r][f];
+          div.textContent = pieceSymbols[piece] || '';
+
+          div.addEventListener('click', onSquareClick);
+          boardDiv.appendChild(div);
+        }
+      }
+    }
+
+    function onSquareClick(e) {
+      const sq = e.currentTarget.dataset.square;
+
+      if (!selectedSquare) {
+        selectedSquare = sq;
+        e.currentTarget.classList.add('selected');
+      } else {
+        const from = selectedSquare;
+        const to = sq;
+        clearSelection();
+        if (from !== to) {
+          sendMove(from + to);
+        }
+        selectedSquare = null;
+      }
+    }
+
+    function clearSelection() {
+      document.querySelectorAll('.square').forEach(sq => {
+        sq.classList.remove('selected');
+      });
+    }
+
+    async function sendMove(uciMove) {
+      try {
+        const res = await fetch("/move", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ move: uciMove })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          fen = data.fen;
+          drawBoard();
+          if (data.is_game_over) {
+            alert("Partida terminada. Resultado: " + data.result);
+          }
+        } else {
+          alert("Movimiento ilegal: " + (data.error || ""));
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Error al enviar el movimiento");
+      }
+    }
+
+    async function resetGame() {
+      const res = await fetch("/reset", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) {
+        fen = data.fen;
+        drawBoard();
+      }
+    }
+
+    drawBoard();
+  </script>
+</body>
+</html>
